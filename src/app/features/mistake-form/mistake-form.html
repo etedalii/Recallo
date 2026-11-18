@@ -1,0 +1,31 @@
+<div class="screen">
+  <h1>Save my mistake</h1>
+  <p class="muted">You'll see the wrong sentence and type the fix when you study this card.</p>
+
+  <div class="field">
+    <label for="wrong">What you wrote (wrong)</label>
+    <textarea id="wrong" [(ngModel)]="wrongSentence" name="wrong" placeholder="I am go to school yesterday."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="correct">Corrected sentence</label>
+    <textarea id="correct" [(ngModel)]="correctedSentence" name="correct" placeholder="I went to school yesterday."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="note">Note (optional)</label>
+    <input id="note" [(ngModel)]="note" name="note" placeholder="Why it was wrong" />
+  </div>
+
+  <div class="field">
+    <label for="deck">Deck</label>
+    <input id="deck" [(ngModel)]="deck" name="deck" list="mistake-deck-list" />
+    <datalist id="mistake-deck-list">
+      @for (d of deckOptions(); track d) {
+        <option [value]="d"></option>
+      }
+    </datalist>
+  </div>
+
+  <button class="primary" style="width:100%" (click)="save()">Save mistake</button>
+</div>

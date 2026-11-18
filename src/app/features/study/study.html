@@ -1,0 +1,210 @@
+<div class="screen">
+  <div class="row">
+    <a routerLink="/home"><button>Done</button></a>
+    <div class="spacer"></div>
+    <button (click)="toggleHardMode()">{{ studyingHard() ? 'Studying hard cards' : 'Study hard cards' }}</button>
+  </div>
+
+  @if (!current()) {
+    <div class="empty-state">
+      <h2>Nothing to study right now</h2>
+      <p>Come back later, or add more cards.</p>
+      <a routerLink="/add"><button class="primary">Add a card</button></a>
+    </div>
+  } @else {
+    <p class="muted">{{ index() + 1 }} of {{ queue().length }}</p>
+
+    <div class="card-surface field">
+      @if (showsPicture() && current()!.image) {
+        <img [src]="current()!.image" alt="" class="card-image" />
+      }
+
+      @switch (current()!.mode) {
+        @case (CardMode.Flip) {
+          <h1>{{ current()!.word }}</h1>
+          @if (current()!.phonetic) {
+            <p class="muted">{{ current()!.phonetic }}</p>
+          }
+          @if (reveal() === 'front' && persianDisplayAllowsHint() && current()!.persian) {
+            <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
+              <bdi>{{ current()!.persian }}</bdi>
+            </p>
+          }
+          <button (click)="playWord()">🔊 Play word</button>
+          @if (reveal() === 'front') {
+            <div class="row field" style="margin-top:16px">
+              <button class="primary" style="flex:1" (click)="showAnswer()">Show answer</button>
+            </div>
+          }
+        }
+        @case (CardMode.Type) {
+          <p>{{ current()!.definition }}</p>
+          @if (reveal() === 'front') {
+            <div class="field">
+              <button (click)="revealHint()">💡 First-letter hint</button>
+              @if (hintText()) {
+                <p class="muted">{{ hintText() }}</p>
+              }
+              <input
+                [(ngModel)]="typedAnswer"
+                name="typed"
+                placeholder="Type the word"
+                (keydown.enter)="submitTyped()"
+              />
+              <button class="primary" (click)="submitTyped()">Check</button>
+            </div>
+          }
+        }
+        @case (CardMode.Cloze) {
+          <p>{{ clozeInfo()?.blanked }}</p>
+          @if (reveal() === 'front') {
+            <div class="field">
+              <input
+                [(ngModel)]="typedAnswer"
+                name="typed"
+                placeholder="Type the missing word"
+                (keydown.enter)="submitTyped()"
+              />
+              <button class="primary" (click)="submitTyped()">Check</button>
+            </div>
+          }
+        }
+        @case (CardMode.Listen) {
+          <div class="row field">
+            <button (click)="playSentence(false)">🔊 Normal speed</button>
+            <button (click)="playSentence(true)">🐢 Slow</button>
+          </div>
+          @if (reveal() === 'front') {
+            <div class="field">
+              <input
+                [(ngModel)]="typedAnswer"
+                name="typed"
+                placeholder="Type what you heard"
+                (keydown.enter)="submitTyped()"
+              />
+              <button class="primary" (click)="submitTyped()">Check</button>
+            </div>
+          }
+        }
+        @case (CardMode.Fix) {
+          <p class="muted">Fix this sentence:</p>
+          <p>{{ current()!.sentence }}</p>
+          @if (reveal() === 'front') {
+            <div class="field">
+              <textarea [(ngModel)]="typedAnswer" name="typed" placeholder="Type the corrected sentence"></textarea>
+              <button class="primary" (click)="submitTyped()">Check</button>
+            </div>
+          }
+        }
+        @case (CardMode.Persian) {
+          <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
+            <bdi>{{ current()!.persian }}</bdi>
+          </p>
+          @if (reveal() === 'front') {
+            <div class="field">
+              <button (click)="revealHint()">💡 First-letter hint</button>
+              @if (hintText()) {
+                <p class="muted">{{ hintText() }}</p>
+              }
+              <input
+                [(ngModel)]="typedAnswer"
+                name="typed"
+                placeholder="Type the English word"
+                (keydown.enter)="submitTyped()"
+              />
+              <button class="primary" (click)="submitTyped()">Check</button>
+            </div>
+          }
+        }
+      }
+
+      @if (reveal() === 'answer') {
+        <div class="answer-block">
+          @if (judgement()) {
+            <p class="judgement" [class]="judgement()">
+              {{ judgement() === 'correct' ? '✅ Correct' : judgement() === 'almost' ? '🟡 Almost' : '❌ Wrong' }}
+            </p>
+          }
+
+          @if (diffTokens()) {
+            <p class="diff">
+              @for (tok of diffTokens(); track $index) {
+                <span [class]="tok.kind">{{ tok.word }}</span>&nbsp;
+              }
+            </p>
+          }
+
+          <hr />
+
+          <h2>{{ current()!.word }}</h2>
+          @if (current()!.phonetic) {
+            <p class="muted">{{ current()!.phonetic }}</p>
+          }
+          <p>{{ current()!.definition }}</p>
+
+          @if (languageEnabled() && current()!.persian && store.settings().persianDisplay !== PersianDisplay.Off) {
+            <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
+              <bdi>{{ current()!.persian }}</bdi>
+              @if (hasLanguageVoice()) {
+                <button (click)="playSecondLanguage(current()!.persian)">🔊</button>
+              }
+            </p>
+          }
+
+          @if (current()!.sentence) {
+            <p><bdi>{{ current()!.sentence }}</bdi></p>
+          }
+          @if (languageEnabled() && current()!.persianSentence && store.settings().persianDisplay !== PersianDisplay.Off) {
+            <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
+              <bdi>{{ current()!.persianSentence }}</bdi>
+            </p>
+          }
+
+          @if (current()!.synonyms.length) {
+            <p><strong>Synonyms:</strong> {{ current()!.synonyms.join(', ') }}</p>
+          }
+          @if (current()!.antonyms.length) {
+            <p><strong>Opposites:</strong> {{ current()!.antonyms.join(', ') }}</p>
+          }
+          @if (current()!.collocations.length) {
+            <p><strong>Goes with:</strong> {{ current()!.collocations.join(', ') }}</p>
+          }
+          @if (current()!.note) {
+            <p class="muted">Note: {{ current()!.note }}</p>
+          }
+          @if (current()!.image && current()!.imageCredit) {
+            <p class="muted">
+              {{ current()!.imageCredit!.title }} — {{ current()!.imageCredit!.author }} ({{ current()!.imageCredit!.licence }})
+            </p>
+          }
+
+          @if (sayItSupported) {
+            <div class="field">
+              <button (click)="sayIt()" [disabled]="sayItBusy()">🎤 Say it</button>
+              @if (sayItResult()) {
+                <p class="muted">
+                  Heard: "{{ sayItResult()!.heard }}" — similarity {{ (sayItResult()!.similarity * 100).toFixed(0) }}%
+                </p>
+              }
+            </div>
+          }
+
+          <div class="rating-row">
+            @for (p of previews(); track p.rating) {
+              <button
+                class="rating-btn"
+                [class.suggested]="suggestedRating() === p.rating"
+                (click)="rate(p.rating)"
+              >
+                <span class="rating-name">
+                  {{ p.rating === Rating.Again ? 'Again' : p.rating === Rating.Hard ? 'Hard' : p.rating === Rating.Good ? 'Good' : 'Easy' }}
+                </span>
+                <span class="rating-interval">{{ p.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

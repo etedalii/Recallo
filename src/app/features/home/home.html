@@ -1,0 +1,73 @@
+<div class="screen">
+  <div class="row" style="gap:12px; margin-bottom:8px">
+    <img src="icons/icon-96x96.png" alt="" width="40" height="40" class="app-logo" />
+    <h1 style="margin:0">Recallo</h1>
+  </div>
+
+  @if (showBanner()) {
+    <div class="banner">
+      <p>Your cards are not backed up.</p>
+      <div class="row">
+        <button class="primary" (click)="backUpNow()">Back up now</button>
+        <button (click)="later()">Later</button>
+      </div>
+    </div>
+  }
+
+  <div class="card-surface field">
+    <div class="row">
+      <div>
+        <strong>{{ streak() }}</strong>
+        <div class="muted">day streak</div>
+      </div>
+      <div class="spacer"></div>
+      <div style="text-align:right">
+        <strong>{{ goalProgress().done }} / {{ goalProgress().goal }}</strong>
+        <div class="muted">today's goal</div>
+      </div>
+    </div>
+    <div class="progress-bar" style="margin-top:10px">
+      <div [style.width.%]="goalProgress().pct"></div>
+    </div>
+  </div>
+
+  @if (store.cards().length === 0) {
+    <div class="empty-state">
+      <p>You have no cards yet.</p>
+      <a routerLink="/add"><button class="primary">Add your first card</button></a>
+    </div>
+  } @else {
+    <div class="row field">
+      <button class="primary" style="flex:1" (click)="studyDeck()" [disabled]="totalDue() === 0">
+        @if (totalDue() > 0) {
+          Study now ({{ totalDue() }})
+        } @else {
+          Nothing due right now
+        }
+      </button>
+    </div>
+
+    <h2>Decks</h2>
+    @for (deck of deckSummaries(); track deck.name) {
+      <div class="card-surface field row" (click)="studyDeck(deck.name)" style="cursor:pointer">
+        <div>
+          <strong>{{ deck.name }}</strong>
+          <div class="muted">{{ deck.due }} due · {{ deck.fresh }} new</div>
+        </div>
+        <div class="spacer"></div>
+        @if (deck.due + deck.fresh > 0) {
+          <span class="chip">{{ deck.due + deck.fresh }}</span>
+        }
+      </div>
+    }
+  }
+
+  <div class="row field" style="margin-top:12px">
+    <a routerLink="/add" style="flex:1"><button style="width:100%">Add a card</button></a>
+    <a routerLink="/mistake" style="flex:1"><button style="width:100%">Save a mistake</button></a>
+  </div>
+
+  <a href="https://www.buymeacoffee.com/etedali" target="_blank" rel="noopener noreferrer" class="coffee-link">
+    ☕ Enjoying Recallo? Buy me a coffee
+  </a>
+</div>

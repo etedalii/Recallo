@@ -1,0 +1,233 @@
+/* Global styles and theme for Recallo. Plain CSS only, no framework. */
+
+:root {
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f0f3;
+  --color-text: #1c1c1e;
+  --color-text-muted: #6b6b70;
+  --color-border: #e2e2e6;
+  --color-primary: #3a6df0;
+  --color-primary-text: #ffffff;
+  --color-success: #2fa84f;
+  --color-warning: #d98c12;
+  --color-danger: #e0453c;
+  --color-again: #e0453c;
+  --color-hard: #d98c12;
+  --color-good: #2fa84f;
+  --color-easy: #3a6df0;
+
+  --radius: 12px;
+  --tap-min: 44px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #0f0f12;
+    --color-surface: #1b1b1f;
+    --color-surface-2: #242428;
+    --color-text: #f2f2f4;
+    --color-text-muted: #a0a0a6;
+    --color-border: #33333a;
+    --color-primary: #5f8cfa;
+    --color-primary-text: #0f0f12;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #0f0f12;
+  --color-surface: #1b1b1f;
+  --color-surface-2: #242428;
+  --color-text: #f2f2f4;
+  --color-text-muted: #a0a0a6;
+  --color-border: #33333a;
+  --color-primary: #5f8cfa;
+  --color-primary-text: #0f0f12;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0 0 8px;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+button {
+  cursor: pointer;
+  min-height: var(--tap-min);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 10px 16px;
+}
+
+button:active {
+  opacity: 0.8;
+}
+
+button.primary {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+button.danger {
+  color: var(--color-danger);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  min-height: var(--tap-min);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 8px 12px;
+  width: 100%;
+}
+
+textarea {
+  min-height: 72px;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+/* Persian / Farsi text: right-to-left, larger, system font stack (no web-font download). */
+[dir='rtl'],
+.persian-text {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Vazirmatn', 'Geeza Pro', 'Noto Naskh Arabic', system-ui, sans-serif;
+  font-size: 1.2em;
+}
+
+.card-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.chip {
+  display: inline-block;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  border-radius: 999px;
+  padding: 6px 12px;
+  margin: 4px 4px 0 0;
+  font-size: 0.9em;
+  min-height: 36px;
+  line-height: 22px;
+}
+
+.chip.selected {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: transparent;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(16px + var(--safe-top)) 16px calc(88px + var(--safe-bottom));
+  min-height: 100%;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--color-text-muted);
+}
+
+.banner {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.progress-bar > div {
+  height: 100%;
+  background: var(--color-primary);
+}

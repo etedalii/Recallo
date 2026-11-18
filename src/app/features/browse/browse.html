@@ -1,0 +1,61 @@
+<div class="screen">
+  <h1>Browse</h1>
+
+  <div class="field">
+    <input
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      name="query"
+      placeholder="Search word, definition, Persian, tags…"
+    />
+  </div>
+
+  <div class="row field">
+    <select [ngModel]="deckFilter()" (ngModelChange)="deckFilter.set($event)" name="deckFilter" style="flex:1">
+      <option value="">All decks</option>
+      @for (d of deckOptions(); track d) {
+        <option [value]="d">{{ d }}</option>
+      }
+    </select>
+    <select [ngModel]="tagFilter()" (ngModelChange)="tagFilter.set($event)" name="tagFilter" style="flex:1">
+      <option value="">All tags</option>
+      @for (t of tagOptions(); track t) {
+        <option [value]="t">{{ t }}</option>
+      }
+    </select>
+  </div>
+
+  @if (results().length === 0) {
+    <div class="empty-state">
+      <p>No cards match.</p>
+    </div>
+  } @else {
+    @for (card of results(); track card.id) {
+      <div class="card-surface field" [class.suspended]="card.suspended">
+        <div class="row">
+          <div>
+            <strong>{{ card.word }}</strong>
+            <span class="muted"> · {{ card.mode }} · {{ card.deck }}</span>
+          </div>
+          <div class="spacer"></div>
+          @if (card.suspended) {
+            <span class="chip">suspended</span>
+          }
+        </div>
+        @if (card.definition) {
+          <p class="muted">{{ card.definition }}</p>
+        }
+        @if (card.persian && store.settings().secondLanguageEnabled) {
+          <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
+            <bdi>{{ card.persian }}</bdi>
+          </p>
+        }
+        <div class="row field" style="margin-top:8px">
+          <button (click)="edit(card)">Edit</button>
+          <button (click)="toggleSuspend(card)">{{ card.suspended ? 'Unsuspend' : 'Suspend' }}</button>
+          <button class="danger" (click)="remove(card)">Delete</button>
+        </div>
+      </div>
+    }
+  }
+</div>

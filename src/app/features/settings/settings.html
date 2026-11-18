@@ -1,0 +1,211 @@
+<div class="screen">
+  <h1>Settings</h1>
+
+  <section class="card-surface field">
+    <h2>Daily limits</h2>
+    <div class="field">
+      <label for="newPerDay">New cards per day</label>
+      <input
+        id="newPerDay"
+        type="number"
+        min="0"
+        [value]="store.settings().newCardsPerDay"
+        (change)="updateNewPerDay($event)"
+      />
+    </div>
+    <div class="field">
+      <label for="reviewsPerDay">Reviews per day</label>
+      <input
+        id="reviewsPerDay"
+        type="number"
+        min="0"
+        [value]="store.settings().reviewsPerDay"
+        (change)="updateReviewsPerDay($event)"
+      />
+    </div>
+    <div class="field">
+      <label for="dailyGoal">Daily goal (reviews)</label>
+      <input
+        id="dailyGoal"
+        type="number"
+        min="1"
+        [value]="store.settings().dailyGoal"
+        (change)="updateDailyGoal($event)"
+      />
+    </div>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Scheduling</h2>
+    <div class="field">
+      <label for="retention">Desired retention: {{ store.settings().desiredRetention }}</label>
+      <input
+        id="retention"
+        type="range"
+        min="0.8"
+        max="0.95"
+        step="0.01"
+        [value]="store.settings().desiredRetention"
+        (input)="updateRetention($event)"
+      />
+    </div>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Appearance</h2>
+    <div class="field row wrap">
+      <button [class.primary]="store.settings().theme === ThemePreference.System" (click)="updateTheme(ThemePreference.System)">System</button>
+      <button [class.primary]="store.settings().theme === ThemePreference.Light" (click)="updateTheme(ThemePreference.Light)">Light</button>
+      <button [class.primary]="store.settings().theme === ThemePreference.Dark" (click)="updateTheme(ThemePreference.Dark)">Dark</button>
+    </div>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Second language</h2>
+    <label class="row">
+      <input
+        type="checkbox"
+        style="width:auto"
+        [checked]="store.settings().secondLanguageEnabled"
+        (change)="updateSecondLanguageEnabled($event)"
+      />
+      Translate words into a second language
+    </label>
+    <p class="muted">
+      Turn this off if you just want plain English flashcards — Look up, Add a card and Study will all drop the
+      translation fields.
+    </p>
+
+    @if (store.settings().secondLanguageEnabled) {
+      <div class="field">
+        <label for="secondLanguage">Language</label>
+        <select id="secondLanguage" (change)="updateSecondLanguageCode($event)">
+          @for (opt of languageOptions; track opt.code) {
+            <option [value]="opt.code" [selected]="store.settings().secondLanguageCode === opt.code">{{ opt.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Show the meaning</label>
+        <div class="row wrap">
+          <button [class.primary]="store.settings().persianDisplay === PersianDisplay.Off" (click)="updatePersianDisplay(PersianDisplay.Off)">Off</button>
+          <button [class.primary]="store.settings().persianDisplay === PersianDisplay.OnAnswer" (click)="updatePersianDisplay(PersianDisplay.OnAnswer)">On the answer</button>
+          <button [class.primary]="store.settings().persianDisplay === PersianDisplay.OnAnswerAndHint" (click)="updatePersianDisplay(PersianDisplay.OnAnswerAndHint)">Answer + hint</button>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="card-surface field">
+    <h2>Pictures &amp; audio</h2>
+    <label class="row">
+      <input
+        type="checkbox"
+        style="width:auto"
+        [checked]="store.settings().showPictureOnFront"
+        (change)="updateShowPicture($event)"
+      />
+      Show the picture on the front of flip cards
+    </label>
+
+    <div class="field">
+      <label for="voice">Voice</label>
+      <select id="voice" (change)="updateVoice($event)">
+        <option value="" [selected]="!store.settings().voiceName">Default</option>
+        @for (v of voices(); track v.name) {
+          <option [value]="v.name" [selected]="store.settings().voiceName === v.name">{{ v.name }} ({{ v.lang }})</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="rate">Speed: {{ store.settings().speechRate }}</label>
+      <input
+        id="rate"
+        type="range"
+        min="0.5"
+        max="1.1"
+        step="0.05"
+        [value]="store.settings().speechRate"
+        (input)="updateRate($event)"
+      />
+    </div>
+
+    <label class="row">
+      <input
+        type="checkbox"
+        style="width:auto"
+        [checked]="store.settings().autoPlayOnAnswer"
+        (change)="updateAutoPlay($event)"
+      />
+      Auto-play audio when the answer is shown
+    </label>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Backup</h2>
+    <p>Last backup: {{ formatLastBackup() }}</p>
+    <div class="row wrap">
+      <button class="primary" (click)="backUpNow()">Back up now</button>
+      <button (click)="exportCsv()">Export CSV</button>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label for="restoreFile">Restore from a backup file</label>
+      <input id="restoreFile" type="file" accept="application/json" (change)="onRestoreFile($event)" />
+    </div>
+    <div class="field">
+      <label for="importCsv">Import cards from a CSV/TSV file</label>
+      <input id="importCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" (change)="onImportCsvFile($event)" />
+    </div>
+    @if (backupMessage()) {
+      <p class="muted">{{ backupMessage() }}</p>
+    }
+  </section>
+
+  <section class="card-surface field">
+    <h2>Daily reminder</h2>
+    <p class="muted">
+      iOS notifications need a server, so instead this creates a repeating calendar event with an alarm. Share or
+      download it, then open it in Calendar.
+    </p>
+    <div class="row">
+      <select (change)="updateReminderHour($event)">
+        @for (h of reminderHours; track h) {
+          <option [value]="h" [selected]="store.settings().reminderHour === h">{{ h.toString().padStart(2, '0') }}</option>
+        }
+      </select>
+      :
+      <select (change)="updateReminderMinute($event)">
+        @for (m of reminderMinutes; track m) {
+          <option [value]="m" [selected]="store.settings().reminderMinute === m">{{ m.toString().padStart(2, '0') }}</option>
+        }
+      </select>
+    </div>
+    <button (click)="shareReminder()" style="margin-top:8px">Create reminder event</button>
+    @if (reminderMessage()) {
+      <p class="muted">{{ reminderMessage() }}</p>
+    }
+  </section>
+
+  <section class="card-surface field">
+    <h2>Support Recallo</h2>
+    <p class="muted">
+      Recallo is free, with no ads and no account. If it's been useful for learning English, you can buy me a
+      coffee — totally optional.
+    </p>
+    <a
+      href="https://www.buymeacoffee.com/etedali"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="coffee-button"
+    >
+      ☕ Buy me a coffee
+    </a>
+  </section>
+
+  <p class="muted">
+    No ads, no account, no analytics. Your data stays on this device. Real sync between devices would need a small
+    backend — for now, use Backup to move your cards.
+  </p>
+</div>

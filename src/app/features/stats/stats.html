@@ -1,0 +1,74 @@
+<div class="screen">
+  <h1>Stats</h1>
+
+  <section class="card-surface field">
+    <h2>Reviews per day (last 14 days)</h2>
+    <svg viewBox="0 0 140 70" class="chart" preserveAspectRatio="none">
+      @for (d of reviewsPerDay(); track d.date; let i = $index) {
+        <rect
+          [attr.x]="i * 10 + 1"
+          [attr.y]="60 - barHeight(d.count, maxDayCount()) * 0.6"
+          width="7"
+          [attr.height]="barHeight(d.count, maxDayCount()) * 0.6 || 1"
+          fill="var(--color-primary)"
+        />
+      }
+      <line x1="0" y1="60" x2="140" y2="60" stroke="var(--color-border)" stroke-width="1" />
+    </svg>
+    <div class="row">
+      <span class="muted">{{ reviewsPerDay()[0].label }}</span>
+      <div class="spacer"></div>
+      <span class="muted">{{ reviewsPerDay()[reviewsPerDay().length - 1].label }}</span>
+    </div>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Accuracy (last 30 days)</h2>
+    <p class="big-number">{{ accuracyPct() }}%</p>
+    <div class="progress-bar">
+      <div [style.width.%]="accuracyPct()"></div>
+    </div>
+    <p class="muted">Share of reviews not rated "Again".</p>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Total study time</h2>
+    <p class="big-number">{{ totalStudyMinutes() }} min</p>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Cards by stage</h2>
+    <svg viewBox="0 0 120 70" class="chart" preserveAspectRatio="none">
+      @for (s of stageCounts(); track s.stage; let i = $index) {
+        <rect
+          [attr.x]="i * 30 + 5"
+          [attr.y]="60 - barHeight(s.count, maxStageCount()) * 0.6"
+          width="20"
+          [attr.height]="barHeight(s.count, maxStageCount()) * 0.6 || 1"
+          fill="var(--color-good)"
+        />
+      }
+      <line x1="0" y1="60" x2="120" y2="60" stroke="var(--color-border)" stroke-width="1" />
+    </svg>
+    <div class="row wrap">
+      @for (s of stageCounts(); track s.stage) {
+        <span class="muted" style="flex:1; text-align:center">{{ s.stage }}: {{ s.count }}</span>
+      }
+    </div>
+  </section>
+
+  <section class="card-surface field">
+    <h2>Weak words</h2>
+    @if (weakWords().length === 0) {
+      <p class="muted">Nothing yet — study a little and this will fill in.</p>
+    } @else {
+      @for (c of weakWords(); track c.id) {
+        <div class="row">
+          <span>{{ c.word }}</span>
+          <div class="spacer"></div>
+          <span class="muted">{{ c.lapses }} lapses · D {{ c.D.toFixed(1) }}</span>
+        </div>
+      }
+    }
+  </section>
+</div>

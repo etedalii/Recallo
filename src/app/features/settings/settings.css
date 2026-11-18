@@ -1,0 +1,26 @@
+section h2 {
+  font-size: 1.05em;
+  margin-bottom: 12px;
+}
+
+section {
+  margin-bottom: 16px;
+}
+
+.coffee-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  border-radius: var(--radius);
+  background: #ffdd00;
+  color: #0f0f12;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.coffee-button:active {
+  opacity: 0.85;
+}

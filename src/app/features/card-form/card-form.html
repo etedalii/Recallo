@@ -1,0 +1,222 @@
+<div class="screen">
+  <h1>{{ isEditing() ? 'Edit card' : 'Add a card' }}</h1>
+
+  <div class="field">
+    <label for="word">Word / phrase</label>
+    <input id="word" [(ngModel)]="word" name="word" placeholder="e.g. decide" />
+  </div>
+
+  <div class="row field">
+    <button class="primary" style="flex:1" (click)="lookupWord()" [disabled]="looking()">
+      {{ looking() ? 'Looking up…' : '🔍 Look up' }}
+    </button>
+  </div>
+  <p class="muted">
+    Fetches the definition, example{{ languageEnabled() ? ', ' + languageName() + ' meaning' : '' }}, collocations,
+    pronunciation and picture suggestions all at once. Everything below stays editable, so change or clear anything
+    before saving.
+  </p>
+  @if (lookupMessage()) {
+    <p class="muted">{{ lookupMessage() }}</p>
+  }
+
+  @if (definitions().length) {
+    <div class="field">
+      <label>Definitions (tap to use)</label>
+      <div class="row wrap">
+        @for (def of definitions(); track $index) {
+          <button type="button" class="chip" (click)="pickDefinition(def)">{{ def.partOfSpeech }}: {{ def.definition }}</button>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="field">
+    <label for="phonetic">Phonetic</label>
+    <input id="phonetic" [(ngModel)]="phonetic" name="phonetic" placeholder="/dɪˈsaɪd/" />
+  </div>
+
+  <div class="field">
+    <label for="definition">Definition</label>
+    <textarea id="definition" [(ngModel)]="definition" name="definition"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="sentence">Example sentence</label>
+    <textarea id="sentence" [(ngModel)]="sentence" name="sentence"></textarea>
+    @if (definitions().length) {
+      <div class="row wrap" style="margin-top:6px">
+        @for (def of definitions(); track $index) {
+          @if (def.example) {
+            <button type="button" class="chip" (click)="pickExample(def)">{{ def.example }}</button>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  @if (languageEnabled()) {
+    <div class="field">
+      <label for="persian">{{ languageName() }} meaning</label>
+      <p class="muted">Machine translation can be wrong for words with many meanings — always editable.</p>
+      <input
+        id="persian"
+        [class.persian-text]="isRtl()"
+        [attr.dir]="isRtl() ? 'rtl' : null"
+        [attr.lang]="languageCode()"
+        [(ngModel)]="persian"
+        name="persian"
+      />
+      <div class="row field" style="margin-top:6px">
+        <button (click)="translateWord()">Translate again</button>
+      </div>
+      @if (persianChoices().length) {
+        <div class="row wrap">
+          @for (c of persianChoices(); track $index) {
+            <button
+              type="button"
+              class="chip"
+              [class.persian-text]="isRtl()"
+              [attr.dir]="isRtl() ? 'rtl' : null"
+              (click)="pickPersian(c)"
+            >
+              {{ c.text }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="field">
+      <label for="persianSentence">{{ languageName() }} sentence</label>
+      <input
+        id="persianSentence"
+        [class.persian-text]="isRtl()"
+        [attr.dir]="isRtl() ? 'rtl' : null"
+        [attr.lang]="languageCode()"
+        [(ngModel)]="persianSentence"
+        name="persianSentence"
+      />
+      <div class="row field" style="margin-top:6px">
+        <button (click)="translateSentence()">Translate sentence again</button>
+      </div>
+      @if (persianSentenceChoices().length) {
+        <div class="row wrap">
+          @for (c of persianSentenceChoices(); track $index) {
+            <button
+              type="button"
+              class="chip"
+              [class.persian-text]="isRtl()"
+              [attr.dir]="isRtl() ? 'rtl' : null"
+              (click)="pickPersianSentence(c)"
+            >
+              {{ c.text }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+    @if (translateMessage()) {
+      <p class="muted">{{ translateMessage() }}</p>
+    }
+  }
+
+  <div class="field">
+    <label for="synonyms">Synonyms (comma separated)</label>
+    <input id="synonyms" [(ngModel)]="synonymsText" name="synonyms" />
+  </div>
+  <div class="field">
+    <label for="antonyms">Opposites (comma separated)</label>
+    <input id="antonyms" [(ngModel)]="antonymsText" name="antonyms" />
+  </div>
+
+  <div class="field">
+    <label for="collocations">Collocations (comma separated)</label>
+    <input id="collocations" [(ngModel)]="collocationsText" name="collocations" />
+    <div class="row field" style="margin-top:6px">
+      <button (click)="findCollocations()">{{ collocationsLoading() ? 'Loading…' : 'Find collocations again' }}</button>
+    </div>
+    @if (collocationChips().length) {
+      <div class="row wrap">
+        @for (c of collocationChips(); track $index) {
+          <button type="button" class="chip" (click)="addCollocation(c)">{{ c }}</button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="field">
+    <label>Picture</label>
+    @if (image()) {
+      <img [src]="image()" alt="" class="preview-image" />
+      <div class="row field">
+        <button class="danger" (click)="removePicture()">Remove picture</button>
+      </div>
+    }
+    <div class="row field">
+      <input type="file" accept="image/*" (change)="onOwnPicture($event)" />
+    </div>
+    <div class="row field">
+      <input [(ngModel)]="pictureQuery" name="pictureQuery" placeholder="Search word" style="flex:1" />
+      <button (click)="findPictures()">{{ pictureLoading() ? 'Searching…' : 'Find pictures again' }}</button>
+    </div>
+    @if (pictureMessage()) {
+      <p class="muted">{{ pictureMessage() }}</p>
+    }
+    @if (pictureResults().length) {
+      <div class="picture-grid">
+        @for (p of pictureResults(); track p.thumbUrl) {
+          <button type="button" class="picture-cell" (click)="pickPicture(p)">
+            <img [src]="p.thumbUrl" alt="" loading="lazy" />
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="field">
+    <label for="deck">Deck</label>
+    <input id="deck" [(ngModel)]="deck" name="deck" list="deck-list" placeholder="Default" />
+    <datalist id="deck-list">
+      @for (d of deckOptions(); track d) {
+        <option [value]="d"></option>
+      }
+    </datalist>
+  </div>
+
+  <div class="field">
+    <label for="kind">Kind</label>
+    <select id="kind" [(ngModel)]="kind" name="kind">
+      <option [value]="CardKind.Word">Word</option>
+      <option [value]="CardKind.PhrasalVerb">Phrasal verb</option>
+      <option [value]="CardKind.Idiom">Idiom</option>
+      <option [value]="CardKind.Phrase">Phrase</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="tags">Tags (comma separated)</label>
+    <input id="tags" [(ngModel)]="tagsText" name="tags" />
+  </div>
+
+  <div class="field">
+    <label for="note">Note</label>
+    <textarea id="note" [(ngModel)]="note" name="note"></textarea>
+  </div>
+
+  @if (!isEditing()) {
+    <div class="field">
+      <label>Create these card styles</label>
+      @for (opt of modeOptions(); track opt.mode) {
+        @if (opt.mode !== CardMode.Persian || languageEnabled()) {
+          <label class="row" style="margin-bottom:6px">
+            <input type="checkbox" style="width:auto" [checked]="opt.selected" (change)="toggleMode(opt.mode)" />
+            {{ modeLabel(opt.mode) }}
+          </label>
+        }
+      }
+    </div>
+  }
+
+  <button class="primary" style="width:100%" (click)="save()">{{ isEditing() ? 'Save changes' : 'Add card' }}</button>
+</div>

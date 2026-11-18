@@ -1,0 +1,27 @@
+h2 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 1em;
+  color: var(--color-text-muted);
+}
+
+.app-logo {
+  border-radius: 10px;
+  display: block;
+}
+
+.coffee-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  padding: 8px;
+  min-height: var(--tap-min);
+  line-height: var(--tap-min);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.9em;
+}
+
+.coffee-link:active {
+  opacity: 0.7;
+}
