@@ -1,12 +1,13 @@
 import { Component, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { BottomNav } from './shared/bottom-nav/bottom-nav';
+import { InstallHint } from './shared/install-hint/install-hint';
 import { StoreService } from './core/store.service';
 import { ThemePreference } from './core/models';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, BottomNav],
+  imports: [RouterOutlet, BottomNav, InstallHint],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

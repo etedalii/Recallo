@@ -1,0 +1,55 @@
+.install-hint {
+  position: fixed;
+  left: calc(12px + var(--safe-left));
+  right: calc(12px + var(--safe-right));
+  bottom: calc(76px + var(--safe-bottom));
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: 14px 36px 14px 14px;
+  z-index: 20;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.steps {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.chip {
+  display: inline-block;
+}
+
+.close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  max-width: 32px;
+  max-height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.install-btn {
+  margin-top: 8px;
+  width: 100%;
+  min-height: var(--tap-min);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}

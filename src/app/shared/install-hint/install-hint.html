@@ -1,0 +1,23 @@
+@if (visible()) {
+  <div class="install-hint" role="dialog" aria-label="Add Recallo to your home screen">
+    <button type="button" class="close" (click)="dismiss()" aria-label="Dismiss">✕</button>
+
+    @if (platform() === 'ios') {
+      <p class="title">📲 Add Recallo to your Home Screen</p>
+      <p class="steps">
+        Tap the Share icon <span class="chip">⬆️</span> below, then choose
+        <strong>"Add to Home Screen"</strong>.
+      </p>
+    } @else if (canNativeInstall()) {
+      <p class="title">📲 Install Recallo</p>
+      <p class="steps">Install the app for quick access, even offline.</p>
+      <button type="button" class="install-btn" (click)="install()">Install</button>
+    } @else {
+      <p class="title">📲 Add Recallo to your Home Screen</p>
+      <p class="steps">
+        Open the browser menu <span class="chip">⋮</span> and choose
+        <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>.
+      </p>
+    }
+  </div>
+}
