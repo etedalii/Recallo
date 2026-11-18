@@ -161,6 +161,15 @@
     @if (backupMessage()) {
       <p class="muted">{{ backupMessage() }}</p>
     }
+
+    <div class="danger-zone">
+      <h3>Danger zone</h3>
+      <p class="muted">
+        Permanently delete every card and review log from this device. Back up first if you want to keep this
+        data — this cannot be undone.
+      </p>
+      <button type="button" class="danger" (click)="deleteAllData()">Delete all data</button>
+    </div>
   </section>
 
   <section class="card-surface field">

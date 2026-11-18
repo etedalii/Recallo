@@ -191,6 +191,17 @@ export class Settings {
     input.value = '';
   }
 
+  async deleteAllData(): Promise<void> {
+    const count = this.store.cards().length;
+    const confirmed = window.confirm(
+      `Permanently delete all ${count} card${count === 1 ? '' : 's'} and your entire review history from this device? ` +
+        'This cannot be undone. Make sure you have a backup first if you want to keep this data.',
+    );
+    if (!confirmed) return;
+    await this.store.deleteAllData();
+    this.backupMessage.set('All cards and review history have been deleted.');
+  }
+
   async onImportCsvFile(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];

@@ -119,6 +119,15 @@ export class StoreService {
     await this.db.setKv('settings', next);
   }
 
+  /** Permanently deletes every card and review log. Settings are kept. */
+  async deleteAllData(): Promise<void> {
+    await this.db.clearCardsAndReviews();
+    this.cards.set([]);
+    const reset: DailyCounters = { date: todayLocalIso(), newShown: 0, reviewsShown: 0 };
+    this.counters.set(reset);
+    await this.db.setKv('counters', reset);
+  }
+
   /** Creates one Card per requested mode, all sharing a new noteId. */
   async addNote(input: NewNoteInput, now = new Date()): Promise<Card[]> {
     const noteId = makeId();

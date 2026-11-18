@@ -94,9 +94,15 @@ export class DbService {
     await (await this.db()).put('kv', value, key);
   }
 
-  /** Wipes everything. Used only by the backup-restore "merge" preview tests. */
+  /** Wipes everything, including settings and counters. */
   async clearAll(): Promise<void> {
     const db = await this.db();
     await Promise.all([db.clear('cards'), db.clear('reviews'), db.clear('kv')]);
+  }
+
+  /** Deletes every card and review log, keeping settings and other kv data intact. */
+  async clearCardsAndReviews(): Promise<void> {
+    const db = await this.db();
+    await Promise.all([db.clear('cards'), db.clear('reviews')]);
   }
 }
