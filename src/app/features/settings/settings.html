@@ -173,6 +173,11 @@
     <div class="field">
       <label for="importCsv">Import cards from a CSV/TSV file</label>
       <input id="importCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" (change)="onImportCsvFile($event)" />
+      <p class="muted">
+        Not sure of the format?
+        <a href="#" (click)="$event.preventDefault(); downloadSampleCsv()">Download a sample CSV</a>
+        with a few example cards to see the columns and follow the same layout.
+      </p>
     </div>
     @if (backupMessage()) {
       <p class="muted">{{ backupMessage() }}</p>

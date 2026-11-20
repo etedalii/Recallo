@@ -164,6 +164,61 @@ export class Settings {
     await this.store.saveSettings({ reminderMinute: parseInt(inputValue(event), 10) });
   }
 
+  /**
+   * Downloads a tiny sample CSV (3 example cards, one per common style) so
+   * someone building their own import file can see the exact columns and
+   * follow the same layout. Mirrors samples/import-sample.csv in the repo.
+   */
+  async downloadSampleCsv(): Promise<void> {
+    const { toCsv } = await import('../../core/csv');
+    const sampleRows = [
+      {
+        word: 'decide',
+        definition: 'to make a choice after thinking about it',
+        persian: 'تصمیم گرفتن',
+        sentence: 'She decided to leave early.',
+        persianSentence: 'او تصمیم گرفت زود برود.',
+        deck: 'Verbs',
+        tags: ['word'],
+        synonyms: ['choose', 'determine'],
+        collocations: ['make a decision'],
+        style: 'cloze',
+        answer: '',
+      },
+      {
+        word: 'give up',
+        definition: 'to stop trying to do something',
+        persian: 'تسلیم شدن',
+        sentence: "Don't give up on your dreams.",
+        persianSentence: 'هرگز از رویاهایت دست نکش.',
+        deck: 'Phrasal Verbs',
+        tags: ['phrasal_verb'],
+        synonyms: ['quit', 'surrender'],
+        collocations: ['give up smoking'],
+        style: 'flip',
+        answer: '',
+      },
+      {
+        word: 'break the ice',
+        definition: 'to do or say something that makes people feel more relaxed',
+        persian: 'یخ را شکستن (شروع یک گفتگوی دوستانه)',
+        sentence: 'He told a joke to break the ice at the meeting.',
+        persianSentence: 'او برای شکستن یخ در جلسه یک جوک گفت.',
+        deck: 'Idioms',
+        tags: ['idiom'],
+        synonyms: [],
+        collocations: [],
+        style: 'type',
+        answer: '',
+      },
+    ];
+    await this.files.shareOrDownload({
+      name: 'recallo-sample-import.csv',
+      mimeType: 'text/csv',
+      content: toCsv(sampleRows),
+    });
+  }
+
   async backUpNow(): Promise<void> {
     this.backupMessage.set('');
     const file = await this.backup.buildBackup(this.store.settings());
