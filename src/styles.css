@@ -116,7 +116,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input,
+input:not([type='checkbox']):not([type='radio']),
 select,
 textarea {
   min-height: var(--tap-min);
@@ -125,6 +125,14 @@ textarea {
   background: var(--color-surface);
   padding: 8px 12px;
   width: 100%;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
 }
 
 textarea {
@@ -189,6 +197,11 @@ a {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+label.row {
+  min-height: var(--tap-min);
+  cursor: pointer;
 }
 
 .row.wrap {

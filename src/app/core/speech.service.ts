@@ -8,14 +8,18 @@ interface SpeechRecognitionResultLike {
 interface SpeechRecognitionEventLike extends Event {
   results: ArrayLike<ArrayLike<SpeechRecognitionResultLike>>;
 }
+interface SpeechRecognitionErrorEventLike extends Event {
+  error: string;
+}
 interface SpeechRecognitionLike extends EventTarget {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
   start(): void;
   stop(): void;
+  abort(): void;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: Event) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
 }
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -46,6 +50,19 @@ export interface PronunciationResult {
  */
 @Injectable({ providedIn: 'root' })
 export class SpeechService {
+  private activeRecognition: SpeechRecognitionLike | null = null;
+  private lastListenError: string | null = null;
+
+  /** Whether listenAndCompare() is currently waiting for/processing speech. */
+  get isListening(): boolean {
+    return this.activeRecognition !== null;
+  }
+
+  /** The browser's reason code for the last listenAndCompare() call that resolved with null (e.g. 'no-speech', 'not-allowed'), or null on success/no attempt yet. */
+  get lastListenErrorReason(): string | null {
+    return this.lastListenError;
+  }
+
   get ttsSupported(): boolean {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
   }
@@ -108,25 +125,60 @@ export class SpeechService {
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) return Promise.resolve(null);
 
+    // Only one microphone session at a time - cancel any stale one first
+    // (otherwise starting a new one can silently fail on some browsers).
+    this.stopListening();
+    this.lastListenError = null;
+
     return new Promise((resolve) => {
       const recognition = new Ctor();
+      this.activeRecognition = recognition;
       recognition.lang = lang;
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
+      let settled = false;
+      const finish = (value: PronunciationResult | null) => {
+        if (settled) return;
+        settled = true;
+        if (this.activeRecognition === recognition) this.activeRecognition = null;
+        resolve(value);
+      };
+
       recognition.onresult = (event) => {
         const heard = event.results[0]?.[0]?.transcript ?? '';
-        resolve({ heard, similarity: this.similarity(targetText, heard) });
+        finish({ heard, similarity: this.similarity(targetText, heard) });
       };
-      recognition.onerror = () => resolve(null);
-      recognition.onend = () => resolve(null);
+      recognition.onerror = (event) => {
+        this.lastListenError = event.error || 'other';
+        finish(null);
+      };
+      recognition.onend = () => finish(null);
 
       try {
         recognition.start();
       } catch {
-        resolve(null);
+        this.lastListenError = 'other';
+        finish(null);
       }
     });
+  }
+
+  /**
+   * Cancels an in-progress listenAndCompare() call, if any - the "Say it"
+   * button needs this so the user isn't stuck waiting for the microphone to
+   * time out on its own. The pending promise resolves with null and
+   * `lastListenErrorReason` is set to 'aborted'.
+   */
+  stopListening(): void {
+    const recognition = this.activeRecognition;
+    this.activeRecognition = null;
+    if (!recognition) return;
+    try {
+      recognition.abort();
+    } catch {
+      // Already stopped - nothing to do.
+    }
   }
 
   /** 0..1 similarity score between two short phrases, based on edit distance. */

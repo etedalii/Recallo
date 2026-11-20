@@ -210,7 +210,7 @@
       @for (opt of modeOptions(); track opt.mode) {
         @if (opt.mode !== CardMode.Persian || languageEnabled()) {
           <label class="row" style="margin-bottom:6px">
-            <input type="checkbox" style="width:auto" [checked]="opt.selected" (change)="toggleMode(opt.mode)" />
+            <input type="checkbox" [checked]="opt.selected" (change)="toggleMode(opt.mode)" />
             {{ modeLabel(opt.mode) }}
           </label>
         }

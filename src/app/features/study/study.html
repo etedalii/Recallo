@@ -180,11 +180,16 @@
 
           @if (sayItSupported) {
             <div class="field">
-              <button (click)="sayIt()" [disabled]="sayItBusy()">🎤 Say it</button>
+              <button (click)="sayIt()">
+                {{ sayItBusy() ? '⏹ Listening… tap to cancel' : '🎤 Say it' }}
+              </button>
               @if (sayItResult()) {
                 <p class="muted">
                   Heard: "{{ sayItResult()!.heard }}" — similarity {{ (sayItResult()!.similarity * 100).toFixed(0) }}%
                 </p>
+              }
+              @if (sayItError()) {
+                <p class="muted">{{ sayItError() }}</p>
               }
             </div>
           }
