@@ -125,12 +125,15 @@
 
     <div class="field">
       <label for="voice">Voice</label>
-      <select id="voice" (change)="updateVoice($event)">
-        <option value="" [selected]="!store.settings().voiceName">Default</option>
-        @for (v of voices(); track v.name) {
-          <option [value]="v.name" [selected]="store.settings().voiceName === v.name">{{ v.name }} ({{ v.lang }})</option>
-        }
-      </select>
+      <div class="row">
+        <select id="voice" style="flex:1" (change)="updateVoice($event)">
+          <option value="" [selected]="!store.settings().voiceName">Default</option>
+          @for (v of voices(); track v.name) {
+            <option [value]="v.name" [selected]="store.settings().voiceName === v.name">{{ v.name }} ({{ v.lang }})</option>
+          }
+        </select>
+        <button type="button" (click)="previewVoice()">🔊 Try it</button>
+      </div>
     </div>
 
     <div class="field">

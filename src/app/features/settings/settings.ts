@@ -6,7 +6,12 @@ import { FilesService } from '../../core/files.service';
 import { SpeechService } from '../../core/speech.service';
 import { CardKind, CardMode, LastBackupInfo, PersianDisplay, Settings as SettingsModel, ThemePreference } from '../../core/models';
 import { defaultCardKindFromTags } from '../../core/store.service';
-import { SECOND_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from '../../core/languages';
+import { SECOND_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS, getLanguageOption } from '../../core/languages';
+
+/** A short phrase to preview a voice with, in the language being studied. */
+function sampleTextFor(studyLanguageCode: string): string {
+  return studyLanguageCode === 'fr' ? 'Bonjour, voici un exemple de cette voix.' : 'Hello, this is a sample of this voice.';
+}
 
 const STYLE_TO_MODE: Record<string, CardMode> = {
   flip: CardMode.Flip,
@@ -129,6 +134,18 @@ export class Settings {
   async updateVoice(event: Event): Promise<void> {
     const name = inputValue(event);
     await this.store.saveSettings({ voiceName: name || null });
+    await this.previewVoice();
+  }
+
+  /** Speaks a short sample so the user can judge a voice without leaving Settings. */
+  async previewVoice(): Promise<void> {
+    const settings = this.store.settings();
+    const voice = this.voices().find((v) => v.name === settings.voiceName) ?? null;
+    await this.speech.speak(sampleTextFor(settings.studyLanguageCode), {
+      voice,
+      rate: settings.speechRate,
+      lang: getLanguageOption(settings.studyLanguageCode).speechLang,
+    });
   }
 
   async updateRate(event: Event): Promise<void> {
