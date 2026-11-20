@@ -38,7 +38,12 @@
           }
         }
         @case (CardMode.Type) {
-          <p>{{ current()!.definition }}</p>
+          <p>
+            {{ current()!.definition }}
+            @if (current()!.definition) {
+              <button type="button" (click)="playDefinition()">🔊</button>
+            }
+          </p>
           @if (reveal() === 'front') {
             <div class="field">
               <button (click)="revealHint()">💡 First-letter hint</button>
@@ -140,7 +145,12 @@
           @if (current()!.phonetic) {
             <p class="muted">{{ current()!.phonetic }}</p>
           }
-          <p>{{ current()!.definition }}</p>
+          <p>
+            {{ current()!.definition }}
+            @if (current()!.definition) {
+              <button type="button" (click)="playDefinition()">🔊</button>
+            }
+          </p>
 
           @if (languageEnabled() && current()!.persian && store.settings().persianDisplay !== PersianDisplay.Off) {
             <p [class.persian-text]="isRtl()" [attr.dir]="isRtl() ? 'rtl' : null" [attr.lang]="languageCode()">
@@ -161,10 +171,24 @@
           }
 
           @if (current()!.synonyms.length) {
-            <p><strong>Synonyms:</strong> {{ current()!.synonyms.join(', ') }}</p>
+            <p class="field">
+              <strong>Synonyms:</strong>
+              <span class="row wrap">
+                @for (s of current()!.synonyms; track s) {
+                  <button type="button" class="chip" (click)="playWordLike(s)">🔊 {{ s }}</button>
+                }
+              </span>
+            </p>
           }
           @if (current()!.antonyms.length) {
-            <p><strong>Opposites:</strong> {{ current()!.antonyms.join(', ') }}</p>
+            <p class="field">
+              <strong>Opposites:</strong>
+              <span class="row wrap">
+                @for (a of current()!.antonyms; track a) {
+                  <button type="button" class="chip" (click)="playWordLike(a)">🔊 {{ a }}</button>
+                }
+              </span>
+            </p>
           }
           @if (current()!.collocations.length) {
             <p><strong>Goes with:</strong> {{ current()!.collocations.join(', ') }}</p>

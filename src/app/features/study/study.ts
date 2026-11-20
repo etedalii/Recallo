@@ -181,6 +181,13 @@ export class Study implements OnDestroy {
     }
   }
 
+  /** Voice + BCP-47 locale for speaking text in the language being studied. */
+  private resolveStudyVoice(): { voice: SpeechSynthesisVoice | null; lang: string } {
+    const settings = this.store.settings();
+    const voice = this.speech.getVoicesForLanguage(settings.studyLanguageCode).find((v) => v.name === settings.voiceName) ?? null;
+    return { voice, lang: getLanguageOption(settings.studyLanguageCode).speechLang };
+  }
+
   async playWord(): Promise<void> {
     const card = this.current();
     if (!card) return;
@@ -188,21 +195,29 @@ export class Study implements OnDestroy {
       return;
     }
     // No recorded audio, or it failed to play — fall back to the voice.
-    const settings = this.store.settings();
-    const voice = this.speech.getVoicesForLanguage(settings.studyLanguageCode).find((v) => v.name === settings.voiceName) ?? null;
-    await this.speech.speak(card.word, { voice, rate: settings.speechRate, lang: getLanguageOption(settings.studyLanguageCode).speechLang });
+    const { voice, lang } = this.resolveStudyVoice();
+    await this.speech.speak(card.word, { voice, rate: this.store.settings().speechRate, lang });
   }
 
   async playSentence(slow: boolean): Promise<void> {
     const card = this.current();
     if (!card || !card.sentence) return;
-    const settings = this.store.settings();
-    const voice = this.speech.getVoicesForLanguage(settings.studyLanguageCode).find((v) => v.name === settings.voiceName) ?? null;
-    await this.speech.speak(card.sentence, {
-      voice,
-      rate: slow ? 0.6 : settings.speechRate,
-      lang: getLanguageOption(settings.studyLanguageCode).speechLang,
-    });
+    const { voice, lang } = this.resolveStudyVoice();
+    await this.speech.speak(card.sentence, { voice, rate: slow ? 0.6 : this.store.settings().speechRate, lang });
+  }
+
+  /** Speaks the card's definition aloud, so a learner can hear it read correctly, not just see it. */
+  async playDefinition(): Promise<void> {
+    const card = this.current();
+    if (!card || !card.definition) return;
+    const { voice, lang } = this.resolveStudyVoice();
+    await this.speech.speak(card.definition, { voice, rate: this.store.settings().speechRate, lang });
+  }
+
+  /** Speaks a single synonym or opposite aloud when its chip is tapped. */
+  async playWordLike(word: string): Promise<void> {
+    const { voice, lang } = this.resolveStudyVoice();
+    await this.speech.speak(word, { voice, rate: this.store.settings().speechRate, lang });
   }
 
   async playSecondLanguage(text: string): Promise<void> {
