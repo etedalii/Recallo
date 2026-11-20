@@ -57,6 +57,12 @@ export class Study implements OnDestroy {
   protected readonly sayItBusy = signal(false);
   protected readonly sayItError = signal<string | null>(null);
 
+  protected readonly sessionReviewed = signal(0);
+  protected readonly sessionCorrect = signal(0);
+  protected readonly leechMessage = signal<string | null>(null);
+  protected readonly canUndo = computed(() => this.store.canUndo());
+  private sessionStartedAt = Date.now();
+
   private startedAt = Date.now();
 
   protected readonly current = computed<Card | null>(() => this.queue()[this.index()] ?? null);
@@ -106,6 +112,11 @@ export class Study implements OnDestroy {
       : this.store.buildStudyQueue(now, this.deck());
     this.queue.set(list);
     this.index.set(0);
+    this.sessionReviewed.set(0);
+    this.sessionCorrect.set(0);
+    this.leechMessage.set(null);
+    this.sessionStartedAt = Date.now();
+    this.store.clearUndo();
     this.resetCardState();
   }
 
@@ -254,9 +265,43 @@ export class Study implements OnDestroy {
   async rate(rating: Rating): Promise<void> {
     const card = this.current();
     if (!card) return;
-    await this.store.rateCard(card, rating, this.startedAt);
+    const updated = await this.store.rateCard(card, rating, this.startedAt);
+    this.sessionReviewed.set(this.sessionReviewed() + 1);
+    if (rating !== Rating.Again) this.sessionCorrect.set(this.sessionCorrect() + 1);
+    if (updated.suspended && !card.suspended) {
+      this.leechMessage.set(
+        `"${updated.word}" was suspended after ${updated.lapses} lapses — it's a leech. Unsuspend it in Browse if you want to keep studying it.`,
+      );
+    }
     this.index.set(this.index() + 1);
     this.resetCardState();
+  }
+
+  /** Puts the just-rated card back exactly as it was, one step only. */
+  async undo(): Promise<void> {
+    const info = this.store.lastRating();
+    if (!info) return;
+    await this.store.undoLast();
+    this.sessionReviewed.set(Math.max(0, this.sessionReviewed() - 1));
+    if (info.log.correct) this.sessionCorrect.set(Math.max(0, this.sessionCorrect() - 1));
+    this.index.set(Math.max(0, this.index() - 1));
+    this.resetCardState();
+  }
+
+  protected sessionAccuracyPct(): number {
+    const reviewed = this.sessionReviewed();
+    return reviewed > 0 ? Math.round((this.sessionCorrect() / reviewed) * 100) : 0;
+  }
+
+  dismissLeechMessage(): void {
+    this.leechMessage.set(null);
+  }
+
+  protected sessionDurationLabel(): string {
+    const totalSeconds = Math.round((Date.now() - this.sessionStartedAt) / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
   }
 
   persianDisplayAllowsHint(): boolean {

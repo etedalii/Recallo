@@ -8,10 +8,18 @@ import {
   CardState,
   DEFAULT_SETTINGS,
   DailyCounters,
+  LEECH_LAPSE_THRESHOLD,
   Rating,
   ReviewLog,
   Settings,
 } from './models';
+
+/** Enough to put the last rating back exactly as it was before. */
+export interface UndoInfo {
+  cardBefore: Card;
+  log: ReviewLog;
+  countersBefore: DailyCounters;
+}
 
 /** Fields every sibling card of a note shares (everything except mode and scheduling). */
 export type SharedNoteFields = Pick<
@@ -79,6 +87,10 @@ export class StoreService {
   readonly settings = signal<Settings>({ ...DEFAULT_SETTINGS });
   readonly counters = signal<DailyCounters>({ date: todayLocalIso(), newShown: 0, reviewsShown: 0 });
   readonly loaded = signal(false);
+
+  /** Snapshot of the single most recent rating, so study.ts can offer a one-step "Undo". */
+  readonly lastRating = signal<UndoInfo | null>(null);
+  readonly canUndo = computed(() => this.lastRating() !== null);
 
   readonly decks = computed(() => {
     const names = new Set(this.cards().map((c) => c.deck).filter((d) => d.length > 0));
@@ -271,12 +283,20 @@ export class StoreService {
     return previewRatings(card, now, { desiredRetention: this.settings().desiredRetention });
   }
 
-  /** Applies a rating: schedules the card, logs the review, and bumps today's counters. */
+  /**
+   * Applies a rating: schedules the card, logs the review, and bumps today's
+   * counters. A card that just reached `LEECH_LAPSE_THRESHOLD` lapses is
+   * auto-suspended (an Anki-style "leech") — compare `updated.suspended`
+   * against the card passed in to detect this.
+   */
   async rateCard(card: Card, rating: Rating, startedAt: number, now = new Date()): Promise<Card> {
     const wasNew = card.state === CardState.New;
     const wasReview = card.state === CardState.Review;
     const result = schedule(card, rating, now, { desiredRetention: this.settings().desiredRetention });
-    const updated: Card = { ...card, ...result };
+    let updated: Card = { ...card, ...result };
+    if (!updated.suspended && updated.lapses >= LEECH_LAPSE_THRESHOLD) {
+      updated = { ...updated, suspended: true };
+    }
 
     await this.db.putCard(updated);
     this.cards.set(this.cards().map((c) => (c.id === updated.id ? updated : c)));
@@ -294,16 +314,35 @@ export class StoreService {
     await this.db.putReview(log);
 
     const today = todayLocalIso(now);
-    const base = this.effectiveCounters(now);
+    const countersBefore = this.effectiveCounters(now);
     const next: DailyCounters = {
       date: today,
-      newShown: base.newShown + (wasNew ? 1 : 0),
-      reviewsShown: base.reviewsShown + (wasReview ? 1 : 0),
+      newShown: countersBefore.newShown + (wasNew ? 1 : 0),
+      reviewsShown: countersBefore.reviewsShown + (wasReview ? 1 : 0),
     };
     this.counters.set(next);
     await this.db.setKv('counters', next);
 
+    this.lastRating.set({ cardBefore: card, log, countersBefore });
+
     return updated;
+  }
+
+  /** Reverts the single most recent `rateCard` call: card, review log and counters. */
+  async undoLast(): Promise<void> {
+    const info = this.lastRating();
+    if (!info) return;
+    await this.db.putCard(info.cardBefore);
+    await this.db.deleteReview(info.log.rid);
+    await this.db.setKv('counters', info.countersBefore);
+    this.cards.set(this.cards().map((c) => (c.id === info.cardBefore.id ? info.cardBefore : c)));
+    this.counters.set(info.countersBefore);
+    this.lastRating.set(null);
+  }
+
+  /** Call when a new study session/queue starts, so a stale undo can't apply across sessions. */
+  clearUndo(): void {
+    this.lastRating.set(null);
   }
 
   async importCards(cards: Card[]): Promise<void> {

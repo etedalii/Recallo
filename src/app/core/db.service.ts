@@ -86,6 +86,10 @@ export class DbService {
     await Promise.all([...reviews.map((r) => tx.store.put(r)), tx.done]);
   }
 
+  async deleteReview(rid: string): Promise<void> {
+    await (await this.db()).delete('reviews', rid);
+  }
+
   async getKv<T>(key: string): Promise<T | undefined> {
     return (await this.db()).get('kv', key) as Promise<T | undefined>;
   }

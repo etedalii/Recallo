@@ -18,6 +18,9 @@ export enum Rating {
   Easy = 4,
 }
 
+/** Lapse count at which a card is auto-suspended as a "leech" (matches Anki's default). */
+export const LEECH_LAPSE_THRESHOLD = 8;
+
 /** How a card is shown and answered during study. */
 export enum CardMode {
   /** Word + audio on the front, tap to reveal the full answer. */

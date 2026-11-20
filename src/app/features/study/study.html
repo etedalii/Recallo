@@ -1,16 +1,37 @@
 <div class="screen">
   <div class="row">
     <a routerLink="/home"><button>Done</button></a>
+    @if (canUndo()) {
+      <button (click)="undo()">↩ Undo</button>
+    }
     <div class="spacer"></div>
     <button (click)="toggleHardMode()">{{ studyingHard() ? 'Studying hard cards' : 'Study hard cards' }}</button>
   </div>
 
-  @if (!current()) {
-    <div class="empty-state">
-      <h2>Nothing to study right now</h2>
-      <p>Come back later, or add more cards.</p>
-      <a routerLink="/add"><button class="primary">Add a card</button></a>
+  @if (leechMessage()) {
+    <div class="banner">
+      <p>🥀 {{ leechMessage() }}</p>
+      <button (click)="dismissLeechMessage()">Dismiss</button>
     </div>
+  }
+
+  @if (!current()) {
+    @if (sessionReviewed() > 0) {
+      <div class="empty-state">
+        <h2>Session complete 🎉</h2>
+        <p>
+          {{ sessionReviewed() }} card{{ sessionReviewed() === 1 ? '' : 's' }} reviewed ·
+          {{ sessionAccuracyPct() }}% correct · {{ sessionDurationLabel() }}
+        </p>
+        <a routerLink="/home"><button class="primary">Done</button></a>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <h2>Nothing to study right now</h2>
+        <p>Come back later, or add more cards.</p>
+        <a routerLink="/add"><button class="primary">Add a card</button></a>
+      </div>
+    }
   } @else {
     <p class="muted">{{ index() + 1 }} of {{ queue().length }}</p>
 
