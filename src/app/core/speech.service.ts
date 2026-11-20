@@ -71,9 +71,10 @@ export class SpeechService {
     return typeof window !== 'undefined' && getSpeechRecognitionCtor() !== null;
   }
 
-  getEnglishVoices(): SpeechSynthesisVoice[] {
+  /** All system voices for an ISO 639-1 language code, for a user-facing voice picker. */
+  getVoicesForLanguage(langCode: string): SpeechSynthesisVoice[] {
     if (!this.ttsSupported) return [];
-    return window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en'));
+    return window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
   }
 
   /** A system voice for the given ISO 639-1 language code, if the phone has one. */

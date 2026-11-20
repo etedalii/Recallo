@@ -109,7 +109,7 @@
               <input
                 [(ngModel)]="typedAnswer"
                 name="typed"
-                placeholder="Type the English word"
+                [placeholder]="'Type the ' + studyLanguageName() + ' word'"
                 (keydown.enter)="submitTyped()"
               />
               <button class="primary" (click)="submitTyped()">Check</button>

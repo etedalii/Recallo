@@ -61,6 +61,22 @@
   </section>
 
   <section class="card-surface field">
+    <h2>What are you learning?</h2>
+    <div class="field">
+      <label for="studyLanguage">Learning language</label>
+      <select id="studyLanguage" (change)="updateStudyLanguage($event)">
+        @for (opt of studyLanguageOptions; track opt.code) {
+          <option [value]="opt.code" [selected]="store.settings().studyLanguageCode === opt.code">{{ opt.name }}</option>
+        }
+      </select>
+    </div>
+    <p class="muted">
+      Changes the language the Lookup button, pronunciation ("Say it") and audio use. Collocations are only
+      available for English (there's no free collocations API for other languages).
+    </p>
+  </section>
+
+  <section class="card-surface field">
     <h2>Second language</h2>
     <label class="row">
       <input
@@ -71,15 +87,15 @@
       Translate words into a second language
     </label>
     <p class="muted">
-      Turn this off if you just want plain English flashcards — Look up, Add a card and Study will all drop the
-      translation fields.
+      Turn this off if you just want flashcards without translations — Look up, Add a card and Study will all drop
+      the translation fields.
     </p>
 
     @if (store.settings().secondLanguageEnabled) {
       <div class="field">
         <label for="secondLanguage">Language</label>
         <select id="secondLanguage" (change)="updateSecondLanguageCode($event)">
-          @for (opt of languageOptions; track opt.code) {
+          @for (opt of languageOptions(); track opt.code) {
             <option [value]="opt.code" [selected]="store.settings().secondLanguageCode === opt.code">{{ opt.name }}</option>
           }
         </select>

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { StoreService } from '../../core/store.service';
 import { LookupService } from '../../core/lookup.service';
 import { FilesService } from '../../core/files.service';
-import { getLanguageName, isRtlLanguage } from '../../core/languages';
+import { collocationsSupported, getLanguageName, isRtlLanguage } from '../../core/languages';
 import {
   Card,
   CardKind,
@@ -76,6 +76,11 @@ export class CardForm {
   protected readonly languageName = computed(() => getLanguageName(this.languageCode()));
   protected readonly isRtl = computed(() => isRtlLanguage(this.languageCode()));
 
+  // --- the language being studied (the word itself) - drives Lookup, audio and pronunciation ---
+  protected readonly studyLanguageCode = computed(() => this.store.settings().studyLanguageCode);
+  protected readonly studyLanguageName = computed(() => getLanguageName(this.studyLanguageCode()));
+  protected readonly collocationsSupported = computed(() => collocationsSupported(this.studyLanguageCode()));
+
   // --- lookup state --------------------------------------------------------
   protected readonly looking = signal(false);
   protected readonly definitions = signal<DictionaryDefinition[]>([]);
@@ -138,9 +143,10 @@ export class CardForm {
   }
 
   /**
-   * One tap fetches everything the form can auto-fill: English definition
-   * + example, Persian meaning (+ Persian sentence once an example is
-   * picked), collocations, pronunciation audio, and picture suggestions.
+   * One tap fetches everything the form can auto-fill: definition + example
+   * in the language being studied, a translated meaning (+ sentence
+   * translation once an example is picked), collocations (English only),
+   * pronunciation audio, and picture suggestions.
    *
    * Pressing it again for a different word always replaces the previous
    * results — it would be surprising for "Look up" to silently do nothing
@@ -170,7 +176,7 @@ export class CardForm {
     const [dictResult] = await Promise.all([
       this.runDictionaryLookup(word),
       this.languageEnabled() ? this.runPersianWordLookup(word) : Promise.resolve(),
-      this.runCollocationsLookup(word),
+      this.collocationsSupported() ? this.runCollocationsLookup(word) : Promise.resolve(),
       this.runPictureSearch(word),
     ]);
     this.looking.set(false);
@@ -215,7 +221,7 @@ export class CardForm {
   }
 
   private async runDictionaryLookup(word: string): Promise<DictionaryLookupResult | null> {
-    const result = await this.lookup.lookupWord(word);
+    const result = await this.lookup.lookupWord(word, this.studyLanguageCode());
     this.phonetic = result?.phonetic ?? '';
     this.audioUrl = result?.audioUrl ?? null;
     this.audioBlob.set(null);
@@ -230,7 +236,7 @@ export class CardForm {
   }
 
   private async runPersianWordLookup(word: string): Promise<void> {
-    const choices = await this.lookup.lookupTranslation(word, this.languageCode());
+    const choices = await this.lookup.lookupTranslation(word, this.languageCode(), this.studyLanguageCode());
     if (!choices) {
       this.translateMessage.set(`${this.languageName()} translation is unavailable right now (offline or daily limit reached). Type it by hand.`);
       return;
@@ -241,7 +247,7 @@ export class CardForm {
 
   private async runPersianSentenceLookup(sentence: string): Promise<void> {
     if (!sentence) return;
-    const choices = await this.lookup.lookupTranslation(sentence, this.languageCode());
+    const choices = await this.lookup.lookupTranslation(sentence, this.languageCode(), this.studyLanguageCode());
     if (!choices) return;
     this.persianSentenceChoices.set(choices);
     this.persianSentence = choices[0]?.text ?? '';
@@ -290,7 +296,7 @@ export class CardForm {
   }
 
   async findCollocations(): Promise<void> {
-    if (!this.word.trim()) return;
+    if (!this.word.trim() || !this.collocationsSupported()) return;
     this.collocationsLoading.set(true);
     const results = await this.lookup.lookupCollocations(this.word.trim());
     this.collocationChips.set(results);
@@ -311,7 +317,7 @@ export class CardForm {
   async translateWord(): Promise<void> {
     if (!this.word.trim()) return;
     this.translateMessage.set('');
-    const choices = await this.lookup.lookupTranslation(this.word.trim(), this.languageCode());
+    const choices = await this.lookup.lookupTranslation(this.word.trim(), this.languageCode(), this.studyLanguageCode());
     if (!choices) {
       this.translateMessage.set('Translation is unavailable right now (offline or daily limit reached). Type it by hand.');
       return;
@@ -322,7 +328,7 @@ export class CardForm {
   async translateSentence(): Promise<void> {
     if (!this.sentence.trim()) return;
     this.translateMessage.set('');
-    const choices = await this.lookup.lookupTranslation(this.sentence.trim(), this.languageCode());
+    const choices = await this.lookup.lookupTranslation(this.sentence.trim(), this.languageCode(), this.studyLanguageCode());
     if (!choices) {
       this.translateMessage.set('Translation is unavailable right now (offline or daily limit reached). Type it by hand.');
       return;
@@ -456,7 +462,7 @@ export class CardForm {
       case CardMode.Listen:
         return 'Listen & type';
       case CardMode.Persian:
-        return `${this.languageName()} → English`;
+        return `${this.languageName()} → ${this.studyLanguageName()}`;
       case CardMode.Fix:
         return 'Fix the sentence';
     }

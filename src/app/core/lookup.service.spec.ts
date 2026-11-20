@@ -3,6 +3,7 @@ import {
   CommonsQueryResponse,
   OpenverseResponse,
   WikipediaQueryResponse,
+  WiktionaryResponse,
   dedupePictures,
   parseCollocations,
   parseCommonsImages,
@@ -10,6 +11,7 @@ import {
   parseOpenverseImages,
   parseTranslation,
   parseWikipediaImages,
+  parseWiktionaryResponse,
 } from './lookup.service';
 
 describe('parseDictionaryResponse', () => {
@@ -71,6 +73,60 @@ describe('parseDictionaryResponse', () => {
       },
     ]);
     expect(result.definitions[0].synonyms).toEqual(['choose', 'determine', 'pick']);
+  });
+});
+
+describe('parseWiktionaryResponse', () => {
+  // Mirrors the real shape of https://en.wiktionary.org/api/rest_v1/page/definition/chat,
+  // which lists an English section (the verb "to chat") and a French
+  // section (the noun "cat") on the same page.
+  const sample: WiktionaryResponse = {
+    en: [
+      { partOfSpeech: 'Verb', definitions: [{ definition: 'To be <a href="/wiki/engage">engaged</a> in conversation.' }] },
+    ],
+    fr: [
+      {
+        partOfSpeech: 'Noun',
+        definitions: [
+          {
+            definition: '<a href="/wiki/cat">cat</a> <span class="mention-gloss-paren">(</span>feline<span class="mention-gloss-paren">)</span>',
+            parsedExamples: [{ example: 'Le <b>chat</b> dort.', translation: 'The cat is sleeping.' }],
+          },
+          { definition: '(male) cat, tom, tomcat' },
+        ],
+      },
+    ],
+  };
+
+  it('picks the requested language section and strips the markup', () => {
+    const result = parseWiktionaryResponse(sample, 'fr');
+    expect(result.definitions).toHaveLength(2);
+    expect(result.definitions[0].partOfSpeech).toBe('Noun');
+    expect(result.definitions[0].definition).toBe('cat (feline)');
+    expect(result.definitions[0].example).toBe('Le chat dort.');
+  });
+
+  it('has no phonetic or audio - this endpoint does not provide them', () => {
+    const result = parseWiktionaryResponse(sample, 'fr');
+    expect(result.phonetic).toBe('');
+    expect(result.audioUrl).toBeNull();
+  });
+
+  it('returns no definitions for a language section the page does not have', () => {
+    const result = parseWiktionaryResponse(sample, 'de');
+    expect(result.definitions).toEqual([]);
+  });
+
+  it('strips an inline <style> block instead of leaving its CSS text behind', () => {
+    const withStyle: WiktionaryResponse = {
+      fr: [
+        {
+          partOfSpeech: 'Noun',
+          definitions: [{ definition: 'a computer. <style>.mw-parser-output .defdate{font-size:smaller}</style>' }],
+        },
+      ],
+    };
+    expect(parseWiktionaryResponse(withStyle, 'fr').definitions[0].definition).toBe('a computer.');
   });
 });
 

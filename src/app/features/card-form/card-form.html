@@ -3,7 +3,7 @@
 
   <div class="field">
     <label for="word">Word / phrase</label>
-    <input id="word" [(ngModel)]="word" name="word" placeholder="e.g. decide" />
+    <input id="word" [(ngModel)]="word" name="word" [placeholder]="studyLanguageCode() === 'fr' ? 'p. ex. décider' : 'e.g. decide'" />
   </div>
 
   <div class="row field">
@@ -12,9 +12,10 @@
     </button>
   </div>
   <p class="muted">
-    Fetches the definition, example{{ languageEnabled() ? ', ' + languageName() + ' meaning' : '' }}, collocations,
-    pronunciation and picture suggestions all at once. Everything below stays editable, so change or clear anything
-    before saving.
+    Fetches the definition, example{{ languageEnabled() ? ', ' + languageName() + ' meaning' : '' }}{{
+      collocationsSupported() ? ', collocations' : ''
+    }}, pronunciation and picture suggestions all at once. Everything below stays editable, so change or clear
+    anything before saving.
   </p>
   @if (lookupMessage()) {
     <p class="muted">{{ lookupMessage() }}</p>
@@ -133,15 +134,19 @@
   <div class="field">
     <label for="collocations">Collocations (comma separated)</label>
     <input id="collocations" [(ngModel)]="collocationsText" name="collocations" />
-    <div class="row field" style="margin-top:6px">
-      <button (click)="findCollocations()">{{ collocationsLoading() ? 'Loading…' : 'Find collocations again' }}</button>
-    </div>
-    @if (collocationChips().length) {
-      <div class="row wrap">
-        @for (c of collocationChips(); track $index) {
-          <button type="button" class="chip" (click)="addCollocation(c)">{{ c }}</button>
-        }
+    @if (collocationsSupported()) {
+      <div class="row field" style="margin-top:6px">
+        <button (click)="findCollocations()">{{ collocationsLoading() ? 'Loading…' : 'Find collocations again' }}</button>
       </div>
+      @if (collocationChips().length) {
+        <div class="row wrap">
+          @for (c of collocationChips(); track $index) {
+            <button type="button" class="chip" (click)="addCollocation(c)">{{ c }}</button>
+          }
+        </div>
+      }
+    } @else {
+      <p class="muted">Automatic collocations need English — type your own for {{ studyLanguageName() }} words.</p>
     }
   </div>
 

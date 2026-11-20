@@ -131,6 +131,8 @@ export interface Settings {
   reviewsPerDay: number;
   desiredRetention: number;
   theme: ThemePreference;
+  /** ISO 639-1 code of the language being studied (the word on the front of a card). Drives Lookup, pronunciation and audio. */
+  studyLanguageCode: string;
   /** Whether translation into a second language is used at all. */
   secondLanguageEnabled: boolean;
   /** ISO 639-1 code of the second language (see core/languages.ts). */
@@ -150,6 +152,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reviewsPerDay: 100,
   desiredRetention: 0.9,
   theme: ThemePreference.System,
+  studyLanguageCode: 'en',
   secondLanguageEnabled: true,
   secondLanguageCode: 'fa',
   persianDisplay: PersianDisplay.OnAnswer,

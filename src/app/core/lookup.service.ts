@@ -64,6 +64,56 @@ export function parseDictionaryResponse(entries: DictionaryApiEntry[]): Dictiona
   return { phonetic, audioUrl, definitions: definitions.slice(0, 8) };
 }
 
+/**
+ * Shape of https://en.wiktionary.org/api/rest_v1/page/definition/<word> —
+ * the fallback dictionary for every studied language other than English.
+ * dictionaryapi.dev only ever serves English (every other language code
+ * 404s), but English Wiktionary documents words from most languages on one
+ * page per spelling, grouped by ISO 639-1 code (e.g. the "chat" page has
+ * both an "en" section — the verb "to chat" — and an "fr" section — the
+ * French noun for "cat").
+ */
+export interface WiktionaryDefinitionSection {
+  partOfSpeech: string;
+  definitions: {
+    definition: string;
+    examples?: string[];
+    parsedExamples?: { example: string; translation?: string }[];
+  }[];
+}
+export type WiktionaryResponse = Record<string, WiktionaryDefinitionSection[]>;
+
+function stripWiktionaryHtml(html: string | undefined): string {
+  return (html ?? '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function parseWiktionaryResponse(response: WiktionaryResponse, langCode: string): DictionaryLookupResult {
+  const sections = response[langCode] ?? [];
+  const definitions: DictionaryDefinition[] = [];
+
+  for (const section of sections) {
+    for (const def of section.definitions) {
+      if (definitions.length >= 8) break;
+      const example = def.parsedExamples?.[0]?.example ?? def.examples?.[0] ?? '';
+      definitions.push({
+        partOfSpeech: section.partOfSpeech,
+        definition: stripWiktionaryHtml(def.definition),
+        example: stripWiktionaryHtml(example),
+        synonyms: [],
+        antonyms: [],
+      });
+    }
+  }
+
+  // No phonetic transcription or audio in this endpoint's response shape —
+  // the "missing phonetic" messaging the form already shows covers that.
+  return { phonetic: '', audioUrl: null, definitions: definitions.slice(0, 8) };
+}
+
 /** Shape of https://api.datamuse.com/words?rel_bga=<word> / rel_bgb=<word>. */
 export interface DatamuseWord {
   word: string;
@@ -76,7 +126,7 @@ export function parseCollocations(word: string, wordsAfter: DatamuseWord[], word
   return [...before, ...after];
 }
 
-/** Shape of https://api.mymemory.translated.net/get?q=<word>&langpair=en|<code> */
+/** Shape of https://api.mymemory.translated.net/get?q=<word>&langpair=<source>|<target> */
 export interface MyMemoryResponse {
   responseData?: { translatedText?: string };
   matches?: { translation: string; quality?: string | number }[];
@@ -256,12 +306,27 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 export class LookupService {
   private readonly files = inject(FilesService);
 
-  async lookupWord(word: string): Promise<DictionaryLookupResult | null> {
-    const entries = await fetchJson<DictionaryApiEntry[]>(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`,
+  /**
+   * Looks up a word's definition for the given ISO 639-1 language (see
+   * core/languages.ts's STUDY_LANGUAGE_OPTIONS). English uses
+   * dictionaryapi.dev (it has phonetics and real pronunciation audio);
+   * every other language falls back to Wiktionary, since dictionaryapi.dev
+   * doesn't actually serve them.
+   */
+  async lookupWord(word: string, langCode = 'en'): Promise<DictionaryLookupResult | null> {
+    if (langCode === 'en') {
+      const entries = await fetchJson<DictionaryApiEntry[]>(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`,
+      );
+      if (!entries) return null;
+      return parseDictionaryResponse(entries);
+    }
+
+    const wiktionary = await fetchJson<WiktionaryResponse>(
+      `https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(word)}`,
     );
-    if (!entries) return null;
-    return parseDictionaryResponse(entries);
+    if (!wiktionary) return null;
+    return parseWiktionaryResponse(wiktionary, langCode);
   }
 
   async lookupCollocations(word: string): Promise<string[]> {
@@ -273,14 +338,18 @@ export class LookupService {
   }
 
   /**
-   * Translates a word or sentence from English into `targetLangCode` (an
-   * ISO 639-1 code — see core/languages.ts). Resolves `null` on
+   * Translates a word or sentence from `sourceLangCode` into `targetLangCode`
+   * (ISO 639-1 codes — see core/languages.ts). Resolves `null` on
    * quota/offline, not an error.
    */
-  async lookupTranslation(text: string, targetLangCode: string): Promise<TranslationChoice[] | null> {
+  async lookupTranslation(
+    text: string,
+    targetLangCode: string,
+    sourceLangCode = 'en',
+  ): Promise<TranslationChoice[] | null> {
     try {
       const res = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${encodeURIComponent(targetLangCode)}`,
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(sourceLangCode)}|${encodeURIComponent(targetLangCode)}`,
       );
       const json = (await res.json().catch(() => null)) as MyMemoryResponse | null;
       if (!res.ok || isTranslationQuotaExceeded(json, res.status)) return null;

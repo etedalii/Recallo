@@ -89,6 +89,10 @@ export class Study implements OnDestroy {
     () => this.speech.getVoiceForLanguage(this.languageCode()) !== null,
   );
 
+  // --- the language being studied (the word itself) ---
+  protected readonly studyLanguageCode = computed(() => this.store.settings().studyLanguageCode);
+  protected readonly studyLanguageName = computed(() => getLanguageName(this.studyLanguageCode()));
+
   constructor() {
     const deckParam = this.route.snapshot.paramMap.get('deck');
     this.deck.set(deckParam ?? undefined);
@@ -160,7 +164,7 @@ export class Study implements OnDestroy {
       const target = this.clozeInfo()?.hiddenWord ?? card.word;
       this.judgement.set(judgeWord(target, typed));
     } else {
-      // Type or Persian: the user types the English word.
+      // Type or Persian: the user types the word being studied.
       this.judgement.set(judgeWord(card.word, typed));
     }
     this.reveal.set('answer');
@@ -185,16 +189,20 @@ export class Study implements OnDestroy {
     }
     // No recorded audio, or it failed to play — fall back to the voice.
     const settings = this.store.settings();
-    const voice = this.speech.getEnglishVoices().find((v) => v.name === settings.voiceName) ?? null;
-    await this.speech.speak(card.word, { voice, rate: settings.speechRate });
+    const voice = this.speech.getVoicesForLanguage(settings.studyLanguageCode).find((v) => v.name === settings.voiceName) ?? null;
+    await this.speech.speak(card.word, { voice, rate: settings.speechRate, lang: getLanguageOption(settings.studyLanguageCode).speechLang });
   }
 
   async playSentence(slow: boolean): Promise<void> {
     const card = this.current();
     if (!card || !card.sentence) return;
     const settings = this.store.settings();
-    const voice = this.speech.getEnglishVoices().find((v) => v.name === settings.voiceName) ?? null;
-    await this.speech.speak(card.sentence, { voice, rate: slow ? 0.6 : settings.speechRate });
+    const voice = this.speech.getVoicesForLanguage(settings.studyLanguageCode).find((v) => v.name === settings.voiceName) ?? null;
+    await this.speech.speak(card.sentence, {
+      voice,
+      rate: slow ? 0.6 : settings.speechRate,
+      lang: getLanguageOption(settings.studyLanguageCode).speechLang,
+    });
   }
 
   async playSecondLanguage(text: string): Promise<void> {
@@ -215,7 +223,7 @@ export class Study implements OnDestroy {
     this.sayItError.set(null);
     this.sayItBusy.set(true);
     const target = card.mode === CardMode.Listen || card.mode === CardMode.Fix ? card.sentence : card.word;
-    const result = await this.speech.listenAndCompare(target);
+    const result = await this.speech.listenAndCompare(target, getLanguageOption(this.studyLanguageCode()).speechLang);
     this.sayItBusy.set(false);
     if (result) {
       this.sayItResult.set(result);

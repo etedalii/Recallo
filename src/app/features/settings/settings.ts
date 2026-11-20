@@ -1,12 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { StoreService } from '../../core/store.service';
 import { BackupService, backupFileName } from '../../core/backup.service';
 import { FilesService } from '../../core/files.service';
 import { SpeechService } from '../../core/speech.service';
-import { CardKind, CardMode, LastBackupInfo, PersianDisplay, ThemePreference } from '../../core/models';
+import { CardKind, CardMode, LastBackupInfo, PersianDisplay, Settings as SettingsModel, ThemePreference } from '../../core/models';
 import { defaultCardKindFromTags } from '../../core/store.service';
-import { SECOND_LANGUAGE_OPTIONS } from '../../core/languages';
+import { SECOND_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from '../../core/languages';
 
 const STYLE_TO_MODE: Record<string, CardMode> = {
   flip: CardMode.Flip,
@@ -39,7 +39,11 @@ export class Settings {
 
   protected readonly ThemePreference = ThemePreference;
   protected readonly PersianDisplay = PersianDisplay;
-  protected readonly languageOptions = SECOND_LANGUAGE_OPTIONS;
+  protected readonly studyLanguageOptions = STUDY_LANGUAGE_OPTIONS;
+  // Can't translate a word into itself — hide whichever language is currently being studied.
+  protected readonly languageOptions = computed(() =>
+    SECOND_LANGUAGE_OPTIONS.filter((l) => l.code !== this.store.settings().studyLanguageCode),
+  );
 
   protected readonly lastBackup = signal<LastBackupInfo | undefined>(undefined);
   protected readonly backupMessage = signal('');
@@ -55,7 +59,7 @@ export class Settings {
   }
 
   private loadVoices(): void {
-    const update = () => this.voices.set(this.speech.getEnglishVoices());
+    const update = () => this.voices.set(this.speech.getVoicesForLanguage(this.store.settings().studyLanguageCode));
     update();
     if (this.speech.ttsSupported) {
       window.speechSynthesis.onvoiceschanged = update;
@@ -92,6 +96,22 @@ export class Settings {
 
   async updatePersianDisplay(value: PersianDisplay): Promise<void> {
     await this.store.saveSettings({ persianDisplay: value });
+  }
+
+  /**
+   * Changes which language the main word on a card is studied in — this
+   * drives the dictionary Lookup button, pronunciation practice and audio.
+   * If the second (meaning) language happens to match, switch it to
+   * something else first, since translating a word into itself is useless.
+   */
+  async updateStudyLanguage(event: Event): Promise<void> {
+    const code = inputValue(event);
+    const patch: Partial<SettingsModel> = { studyLanguageCode: code, voiceName: null };
+    if (this.store.settings().secondLanguageCode === code) {
+      patch.secondLanguageCode = SECOND_LANGUAGE_OPTIONS.find((l) => l.code !== code)?.code ?? code;
+    }
+    await this.store.saveSettings(patch);
+    this.loadVoices();
   }
 
   async updateSecondLanguageEnabled(event: Event): Promise<void> {
