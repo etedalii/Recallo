@@ -14,7 +14,7 @@ interface StageCount {
   count: number;
 }
 
-const MATURE_STABILITY_DAYS = 21;
+const MATURE_INTERVAL_DAYS = 21;
 
 function dateKey(t: number): string {
   const d = new Date(t);
@@ -82,7 +82,7 @@ export class Stats {
     for (const c of cards) {
       if (c.state === CardState.New) fresh++;
       else if (c.state === CardState.Learning || c.state === CardState.Relearning) learning++;
-      else if (c.S >= MATURE_STABILITY_DAYS) mature++;
+      else if (this.currentIntervalDays(c) >= MATURE_INTERVAL_DAYS) mature++;
       else young++;
     }
     return [
@@ -91,6 +91,18 @@ export class Stats {
       { stage: 'Young', count: young },
       { stage: 'Mature', count: mature },
     ];
+  }
+
+  /**
+   * Days between a Review-state card's last review and its next due date —
+   * i.e. the interval it's actually scheduled on. Using this (rather than
+   * raw FSRS stability) to split Young/Mature keeps the split meaningful
+   * regardless of the user's `desiredRetention` setting: stability and the
+   * resulting interval diverge once retention isn't the 0.9 default.
+   */
+  private currentIntervalDays(c: Card): number {
+    if (!c.lastReview) return 0;
+    return (new Date(c.due).getTime() - new Date(c.lastReview).getTime()) / 86_400_000;
   }
 
   maxDayCount(): number {

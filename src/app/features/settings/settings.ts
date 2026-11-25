@@ -299,15 +299,28 @@ export class Settings {
     const file = input.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const { parseCsv } = await import('../../core/csv');
+    const { parseCsv, importDuplicateKey } = await import('../../core/csv');
     const rows = parseCsv(text);
 
+    // Guards against importing the same file (or an overlapping one) twice:
+    // skip any row whose word+deck+mode already matches an existing card.
+    const seenKeys = new Set(this.store.cards().map((c) => importDuplicateKey(c.word, c.deck, c.mode)));
+
     let imported = 0;
+    let skipped = 0;
     for (const row of rows) {
       if (!row.word) continue;
       const mode = STYLE_TO_MODE[row.style.trim().toLowerCase()] ?? CardMode.Flip;
+      const deck = row.deck || 'Imported';
+      const key = importDuplicateKey(row.word, deck, mode);
+      if (seenKeys.has(key)) {
+        skipped++;
+        continue;
+      }
+      seenKeys.add(key);
+
       await this.store.addNote({
-        deck: row.deck || 'Imported',
+        deck,
         kind: row.tags.length ? defaultCardKindFromTags(row.tags) : CardKind.Word,
         word: row.word,
         phonetic: '',
@@ -329,7 +342,20 @@ export class Settings {
       });
       imported++;
     }
-    this.backupMessage.set(`Imported ${imported} card${imported === 1 ? '' : 's'} from CSV.`);
+
+    if (imported === 0 && skipped === 0) {
+      this.backupMessage.set('No cards found in that file.');
+    } else if (skipped === 0) {
+      this.backupMessage.set(`Imported ${imported} card${imported === 1 ? '' : 's'} from CSV.`);
+    } else if (imported === 0) {
+      this.backupMessage.set(
+        `No new cards imported — ${skipped} card${skipped === 1 ? '' : 's'} already in your deck were skipped.`,
+      );
+    } else {
+      this.backupMessage.set(
+        `Imported ${imported} new card${imported === 1 ? '' : 's'}, skipped ${skipped} duplicate${skipped === 1 ? '' : 's'} already in your deck.`,
+      );
+    }
     input.value = '';
   }
 

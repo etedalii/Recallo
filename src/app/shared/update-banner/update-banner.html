@@ -1,6 +1,18 @@
 @if (updateReady()) {
   <div class="update-banner" role="status">
-    <span>A new version of Recallo is ready.</span>
-    <button type="button" (click)="reload()">Reload</button>
+    <div class="update-banner-text">
+      <span>A new version of Recallo is ready.</span>
+      <span class="muted">Your cards live only on this device — back them up before reloading, just in case.</span>
+    </div>
+    <div class="update-banner-actions">
+      <button type="button" (click)="backUpThenReload()" [disabled]="backingUp()">
+        @if (backingUp()) {
+          Backing up…
+        } @else {
+          Back up &amp; reload
+        }
+      </button>
+      <button type="button" (click)="reload()" [disabled]="backingUp()">Reload</button>
+    </div>
   </div>
 }

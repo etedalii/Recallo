@@ -159,6 +159,15 @@ export function parseCsv(text: string): ImportedRow[] {
     });
 }
 
+/**
+ * Normalizes word+deck+style into a key for duplicate detection on CSV
+ * import, so re-importing the same file (or an overlapping one) doesn't
+ * create repeat cards. Matching is case/whitespace-insensitive.
+ */
+export function importDuplicateKey(word: string, deck: string, style: string): string {
+  return [word, deck, style].map((v) => v.trim().toLowerCase()).join('|');
+}
+
 /** Escapes one field for CSV output, quoting only when needed. */
 function escapeCsvField(value: string): string {
   if (/[",\n]/.test(value)) {

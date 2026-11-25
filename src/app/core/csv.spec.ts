@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDelimiter, parseCsv, parseDelimited, toCsv } from './csv';
+import { detectDelimiter, importDuplicateKey, parseCsv, parseDelimited, toCsv } from './csv';
 
 describe('detectDelimiter', () => {
   it('detects commas', () => {
@@ -67,6 +67,17 @@ describe('parseCsv', () => {
     expect(rows[0].tags).toEqual(['fruit', 'food']);
     expect(rows[0].synonyms).toEqual(['fruit', 'snack']);
     expect(rows[0].collocations).toEqual(['eat an apple']);
+  });
+});
+
+describe('importDuplicateKey', () => {
+  it('matches regardless of case or surrounding whitespace', () => {
+    expect(importDuplicateKey(' Apple ', 'Fruit', 'flip')).toBe(importDuplicateKey('apple', 'fruit', 'FLIP'));
+  });
+
+  it('treats different decks or styles as distinct', () => {
+    expect(importDuplicateKey('apple', 'Fruit', 'flip')).not.toBe(importDuplicateKey('apple', 'Food', 'flip'));
+    expect(importDuplicateKey('apple', 'Fruit', 'flip')).not.toBe(importDuplicateKey('apple', 'Fruit', 'type'));
   });
 });
 

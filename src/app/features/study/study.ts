@@ -64,6 +64,8 @@ export class Study implements OnDestroy {
   private sessionStartedAt = Date.now();
 
   private startedAt = Date.now();
+  /** When the page was last hidden, so backgrounded time isn't counted as study time. */
+  private hiddenSince: number | null = null;
 
   protected readonly current = computed<Card | null>(() => this.queue()[this.index()] ?? null);
 
@@ -136,6 +138,7 @@ export class Study implements OnDestroy {
     this.sayItError.set(null);
     this.sayItBusy.set(false);
     this.startedAt = Date.now();
+    this.hiddenSince = document.visibilityState === 'hidden' ? this.startedAt : null;
   }
 
   ngOnDestroy(): void {
@@ -330,5 +333,20 @@ export class Study implements OnDestroy {
 
   ratingLabel(rating: Rating): string {
     return this.previews().find((p) => p.rating === rating)?.label ?? '';
+  }
+
+  /**
+   * Excludes backgrounded time from the current card's timer — otherwise
+   * switching apps, locking the phone or leaving a tab open mid-card would
+   * count that whole gap as study time and inflate the stats page's total.
+   */
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState === 'hidden') {
+      this.hiddenSince = Date.now();
+    } else if (this.hiddenSince !== null) {
+      this.startedAt += Date.now() - this.hiddenSince;
+      this.hiddenSince = null;
+    }
   }
 }
