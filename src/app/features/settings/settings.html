@@ -180,7 +180,13 @@
       </p>
     </div>
     @if (backupMessage()) {
-      <p class="muted">{{ backupMessage() }}</p>
+      <p
+        class="status-message"
+        [class.status-message--success]="backupMessageTone() === 'success'"
+        [class.status-message--warning]="backupMessageTone() === 'warning'"
+      >
+        {{ backupMessage() }}
+      </p>
     }
 
     <div class="danger-zone">

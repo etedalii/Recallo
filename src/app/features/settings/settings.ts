@@ -13,6 +13,9 @@ function sampleTextFor(studyLanguageCode: string): string {
   return studyLanguageCode === 'fr' ? 'Bonjour, voici un exemple de cette voix.' : 'Hello, this is a sample of this voice.';
 }
 
+/** How prominently `backupMessage` should stand out — plain, a success note, or a warning worth noticing. */
+export type MessageTone = 'neutral' | 'success' | 'warning';
+
 const STYLE_TO_MODE: Record<string, CardMode> = {
   flip: CardMode.Flip,
   type: CardMode.Type,
@@ -52,8 +55,14 @@ export class Settings {
 
   protected readonly lastBackup = signal<LastBackupInfo | undefined>(undefined);
   protected readonly backupMessage = signal('');
+  protected readonly backupMessageTone = signal<MessageTone>('neutral');
   protected readonly voices = signal<SpeechSynthesisVoice[]>([]);
   protected readonly reminderMessage = signal('');
+
+  private setBackupMessage(text: string, tone: MessageTone = 'neutral'): void {
+    this.backupMessage.set(text);
+    this.backupMessageTone.set(tone);
+  }
 
   protected readonly reminderHours = Array.from({ length: 24 }, (_, i) => i);
   protected readonly reminderMinutes = [0, 15, 30, 45];
@@ -220,7 +229,7 @@ export class Settings {
   }
 
   async backUpNow(): Promise<void> {
-    this.backupMessage.set('');
+    this.setBackupMessage('');
     const file = await this.backup.buildBackup(this.store.settings());
     const shared = await this.files.shareOrDownload({
       name: backupFileName(),
@@ -230,9 +239,9 @@ export class Settings {
     if (shared) {
       await this.backup.recordBackup(file.cards.length);
       await this.refreshLastBackup();
-      this.backupMessage.set(`Backed up ${file.cards.length} cards.`);
+      this.setBackupMessage(`Backed up ${file.cards.length} cards.`, 'success');
     } else {
-      this.backupMessage.set('Backup was cancelled.');
+      this.setBackupMessage('Backup was cancelled.');
     }
   }
 
@@ -267,7 +276,7 @@ export class Settings {
     const { parseBackupText } = await import('../../core/backup.service');
     const result = parseBackupText(text);
     if (!result.ok) {
-      this.backupMessage.set(result.reason);
+      this.setBackupMessage(result.reason, 'warning');
       input.value = '';
       return;
     }
@@ -278,7 +287,7 @@ export class Settings {
     if (confirmed) {
       const outcome = await this.backup.restoreMerge(preview);
       await this.store.init();
-      this.backupMessage.set(`Merged. You now have ${outcome.ok ? outcome.cardCount : 0} cards.`);
+      this.setBackupMessage(`Merged. You now have ${outcome.ok ? outcome.cardCount : 0} cards.`, 'success');
     }
     input.value = '';
   }
@@ -291,7 +300,7 @@ export class Settings {
     );
     if (!confirmed) return;
     await this.store.deleteAllData();
-    this.backupMessage.set('All cards and review history have been deleted.');
+    this.setBackupMessage('All cards and review history have been deleted.');
   }
 
   async onImportCsvFile(event: Event): Promise<void> {
@@ -344,16 +353,18 @@ export class Settings {
     }
 
     if (imported === 0 && skipped === 0) {
-      this.backupMessage.set('No cards found in that file.');
+      this.setBackupMessage('No cards found in that file.', 'warning');
     } else if (skipped === 0) {
-      this.backupMessage.set(`Imported ${imported} card${imported === 1 ? '' : 's'} from CSV.`);
+      this.setBackupMessage(`Imported ${imported} card${imported === 1 ? '' : 's'} from CSV.`, 'success');
     } else if (imported === 0) {
-      this.backupMessage.set(
-        `No new cards imported — ${skipped} card${skipped === 1 ? '' : 's'} already in your deck were skipped.`,
+      this.setBackupMessage(
+        `No new cards imported — all ${skipped} card${skipped === 1 ? '' : 's'} in that file are already in your deck.`,
+        'warning',
       );
     } else {
-      this.backupMessage.set(
+      this.setBackupMessage(
         `Imported ${imported} new card${imported === 1 ? '' : 's'}, skipped ${skipped} duplicate${skipped === 1 ? '' : 's'} already in your deck.`,
+        'warning',
       );
     }
     input.value = '';

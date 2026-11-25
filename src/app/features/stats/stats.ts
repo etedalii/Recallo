@@ -34,9 +34,16 @@ export class Stats {
 
   protected readonly reviewsPerDay = computed<DayCount[]>(() => this.buildDayCounts(14));
   protected readonly accuracyPct = computed(() => this.computeAccuracy(30));
-  protected readonly totalStudyMinutes = computed(() =>
+  private readonly totalStudyMinutes = computed(() =>
     Math.round(this.reviews().reduce((sum, r) => sum + r.ms, 0) / 60000),
   );
+  /** "Xh Ym" past 60 minutes (e.g. "18h 50m"), otherwise plain minutes — 1130 min is hard to read at a glance. */
+  protected readonly totalStudyTimeLabel = computed(() => {
+    const totalMinutes = this.totalStudyMinutes();
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  });
   protected readonly stageCounts = computed<StageCount[]>(() => this.computeStageCounts(this.store.cards()));
   protected readonly weakWords = computed<Card[]>(() =>
     [...this.store.cards()]

@@ -41,3 +41,24 @@ section {
   width: 100%;
   border-color: var(--color-danger);
 }
+
+.status-message {
+  color: var(--color-text-muted);
+}
+
+.status-message--success,
+.status-message--warning {
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+.status-message--success {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
+}
+
+.status-message--warning {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 18%, var(--color-surface));
+}
